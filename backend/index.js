@@ -8,6 +8,11 @@ import { errorHandler } from "./middlewares/errorHandlerMiddleware.js";
 import { HTTPSTATUS } from "./config/http.config.js";
 import passport from "passport";
 import { asyncHandler } from "./middlewares/asyncHandler.js";
+import { BadRequestException } from "./utils/appError.js";
+import { ErrorCodeEnum } from "./enums/errorCodeEnum.js";
+
+import userRoutes from "./routes/userRoute.js";
+import authRoutes from "./routes/authRoutes.js";
 
 
 const app = express();
@@ -40,15 +45,15 @@ app.use(
 app.get(
   `/`,
   asyncHandler(async (req, res, next) => {
-    throw new BadRequestException(
-      "This is a bad request",
-      ErrorCodeEnum.AUTH_INVALID_TOKEN
-    );
     return res.status(HTTPSTATUS.OK).json({
-      message: "Hello Subscribe to the channel & share",
+      message: "Everything is working fine 🚀",
     });
   })
 );
+
+app.use(`${BASE_PATH}/user`, userRoutes);
+app.use(`${BASE_PATH}/auth`, authRoutes);
+
 
 app.use(errorHandler);
 
