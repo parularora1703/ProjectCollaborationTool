@@ -1,4 +1,3 @@
-// seeders/role.seeder.js
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Role from "../models/rolesModel.js";
@@ -49,10 +48,12 @@ const roles = [
   },
 ];
 
-export const seedRoles = async () => {
+export const seedRoles = async (closeAfter = false) => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("✅ MongoDB Connected");
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect(process.env.MONGO_URI);
+      console.log("✅ MongoDB Connected (from seeder)");
+    }
 
     for (const role of roles) {
       const existingRole = await Role.findOne({ name: role.name });
@@ -65,14 +66,18 @@ export const seedRoles = async () => {
     }
 
     console.log("✅ Seeding completed");
-    await mongoose.disconnect();
+
+    if (closeAfter) {
+      await mongoose.disconnect();
+      console.log("🔌 MongoDB Disconnected (after seeding)");
+    }
   } catch (error) {
     console.error("❌ Error seeding roles:", error);
-    await mongoose.disconnect();
+    if (closeAfter) await mongoose.disconnect();
   }
 };
 
-// 👉 Run directly only if this file is executed (not imported)
+// 👉 Run directly only if this file is executed
 if (import.meta.url === `file://${process.argv[1]}`) {
-  seedRoles().then(() => process.exit());
+  seedRoles(true).then(() => process.exit());
 }

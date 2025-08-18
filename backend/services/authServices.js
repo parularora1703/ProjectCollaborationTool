@@ -4,10 +4,17 @@ import AccountModel from "../models/accountModel.js";
 import WorkspaceModel from "../models/workspaceModel.js";
 import RoleModel from "../models/rolesModel.js";
 import { Roles } from "../enums/rolesEnum.js";
-import { BadRequestException, NotFoundException, UnauthorizedException } from "../utils/appError.js";
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from "../utils/appError.js";
 import MemberModel from "../models/memberModel.js";
 import { ProviderEnum } from "../enums/accountProviderEnum.js";
 
+//
+// 🔹 Login or create account (Google, Github, etc.)
+//
 export const loginOrCreateAccountService = async (data) => {
   const { providerId, provider, displayName, email, picture } = data;
 
@@ -62,6 +69,7 @@ export const loginOrCreateAccountService = async (data) => {
       user.currentWorkspace = workspace._id;
       await user.save({ session });
     }
+
     await session.commitTransaction();
     session.endSession();
     console.log("End Session...");
@@ -76,6 +84,9 @@ export const loginOrCreateAccountService = async (data) => {
   }
 };
 
+//
+// 🔹 Register a new user with email/password
+//
 export const registerUserService = async (body) => {
   const { email, name, password } = body;
   const session = await mongoose.startSession();
@@ -145,6 +156,9 @@ export const registerUserService = async (body) => {
   }
 };
 
+//
+// 🔹 Verify user login with email/password
+//
 export const verifyUserService = async ({
   email,
   password,
@@ -155,7 +169,8 @@ export const verifyUserService = async ({
     throw new NotFoundException("Invalid email or password");
   }
 
-  const user = await UserModel.findById(account.userId);
+  // ✅ Explicitly include password since schema has select: false
+  const user = await UserModel.findById(account.userId).select("+password");
 
   if (!user) {
     throw new NotFoundException("User not found for the given account");
@@ -165,6 +180,10 @@ export const verifyUserService = async ({
   if (!isMatch) {
     throw new UnauthorizedException("Invalid email or password");
   }
+
+  // ✅ update last login timestamp
+  user.lastLogin = new Date();
+  await user.save();
 
   return user.omitPassword();
 };

@@ -17,7 +17,7 @@ const userSchema = new Schema(
       trim: true,
       lowercase: true,
     },
-    password: { type: String, select: false },
+    password: { type: String, select: false }, // hidden by default
     profilePicture: {
       type: String,
       default: null,
@@ -34,28 +34,25 @@ const userSchema = new Schema(
   }
 );
 
-// Hash password before saving
+// 🔒 Hash password before saving
 userSchema.pre("save", async function (next) {
-  if (this.isModified("password")) {
-    if (this.password) {
-      this.password = await hashValue(this.password);
-    }
+  if (this.isModified("password") && this.password) {
+    this.password = await hashValue(this.password);
   }
   next();
 });
 
-// Remove password field from returned object
+// 🚫 Remove password field from returned object
 userSchema.methods.omitPassword = function () {
   const userObject = this.toObject();
   delete userObject.password;
   return userObject;
 };
 
-// Compare given password with stored hash
+// 🔑 Compare given password with stored hash
 userSchema.methods.comparePassword = async function (value) {
   return compareValue(value, this.password);
 };
 
 const UserModel = mongoose.model("User", userSchema);
-
 export default UserModel;
