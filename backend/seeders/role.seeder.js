@@ -1,7 +1,8 @@
+// seeders/role.seeder.js
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import Role from "../models/rolesModel.js"; // adjust path if needed
-import { Roles, Permissions } from "../enums/rolesEnum.js"; // ✅ Correct import
+import Role from "../models/rolesModel.js";
+import { Roles, Permissions } from "../enums/rolesEnum.js";
 
 dotenv.config();
 
@@ -48,7 +49,7 @@ const roles = [
   },
 ];
 
-const seedRoles = async () => {
+export const seedRoles = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("✅ MongoDB Connected");
@@ -63,12 +64,15 @@ const seedRoles = async () => {
       }
     }
 
-    mongoose.connection.close();
-    console.log("✅ Seeding completed and connection closed");
+    console.log("✅ Seeding completed");
+    await mongoose.disconnect();
   } catch (error) {
     console.error("❌ Error seeding roles:", error);
-    mongoose.connection.close();
+    await mongoose.disconnect();
   }
 };
 
-seedRoles();
+// 👉 Run directly only if this file is executed (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  seedRoles().then(() => process.exit());
+}

@@ -4,11 +4,11 @@ import { Strategy as LocalStrategy } from "passport-local";
 
 import { config } from "./app.config.js";
 import { NotFoundException } from "../utils/appError.js";
-import { ProviderEnum } from "../enums/account-provider.enum.js";
+import { ProviderEnum } from "../enums/accountProviderEnum.js";
 import {
   loginOrCreateAccountService,
   verifyUserService,
-} from "../services/auth.service.js";
+} from "../services/authServices.js";
 
 passport.use(
   new GoogleStrategy(

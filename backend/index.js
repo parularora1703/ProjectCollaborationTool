@@ -1,3 +1,4 @@
+// index.js
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -8,14 +9,8 @@ import { errorHandler } from "./middlewares/errorHandlerMiddleware.js";
 import { HTTPSTATUS } from "./config/http.config.js";
 import passport from "passport";
 import { asyncHandler } from "./middlewares/asyncHandler.js";
-import { BadRequestException } from "./utils/appError.js";
-import { ErrorCodeEnum } from "./enums/errorCodeEnum.js";
-import seedRoles from "./seeders/role.seeder.js";
-
-import "./config/passport.config.js";
 import userRoutes from "./routes/userRoute.js";
 import authRoutes from "./routes/authRoutes.js";
-
 
 const app = express();
 const BASE_PATH = config.BASE_PATH;
@@ -46,7 +41,7 @@ app.use(
 
 app.get(
   `/`,
-  asyncHandler(async (req, res, next) => {
+  asyncHandler(async (req, res) => {
     return res.status(HTTPSTATUS.OK).json({
       message: "Everything is working fine 🚀",
     });
@@ -56,11 +51,9 @@ app.get(
 app.use(`${BASE_PATH}/user`, userRoutes);
 app.use(`${BASE_PATH}/auth`, authRoutes);
 
-
 app.use(errorHandler);
 
 app.listen(config.PORT, async () => {
   console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
   await connectDatabase();
-  await seedRoles(); // ensure roles exist
 });
