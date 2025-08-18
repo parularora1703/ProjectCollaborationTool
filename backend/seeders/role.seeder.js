@@ -1,49 +1,74 @@
-require("dotenv").config();
-const mongoose = require("mongoose");
-const connectDatabase = require("../config/database.config");
-const RoleModel = require("../models/roles-permission.model");
-const { RolePermissions } = require("../utils/role-permission");
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import Role from "../models/rolesModel.js"; // adjust path if needed
+import { Roles, Permissions } from "../enums/rolesEnum.js"; // ✅ Correct import
+
+dotenv.config();
+
+const roles = [
+  {
+    name: Roles.OWNER,
+    permissions: [
+      Permissions.CREATE_WORKSPACE,
+      Permissions.DELETE_WORKSPACE,
+      Permissions.EDIT_WORKSPACE,
+      Permissions.MANAGE_WORKSPACE_SETTINGS,
+      Permissions.ADD_MEMBER,
+      Permissions.CHANGE_MEMBER_ROLE,
+      Permissions.REMOVE_MEMBER,
+      Permissions.CREATE_PROJECT,
+      Permissions.EDIT_PROJECT,
+      Permissions.DELETE_PROJECT,
+      Permissions.CREATE_TASK,
+      Permissions.EDIT_TASK,
+      Permissions.DELETE_TASK,
+    ],
+  },
+  {
+    name: Roles.ADMIN,
+    permissions: [
+      Permissions.CREATE_PROJECT,
+      Permissions.EDIT_PROJECT,
+      Permissions.DELETE_PROJECT,
+      Permissions.CREATE_TASK,
+      Permissions.EDIT_TASK,
+      Permissions.DELETE_TASK,
+      Permissions.ADD_MEMBER,
+      Permissions.REMOVE_MEMBER,
+    ],
+  },
+  {
+    name: Roles.MEMBER,
+    permissions: [
+      Permissions.CREATE_TASK,
+      Permissions.EDIT_TASK,
+      Permissions.DELETE_TASK,
+      Permissions.VIEW_ONLY,
+    ],
+  },
+];
 
 const seedRoles = async () => {
-  console.log("Seeding roles started...");
-
   try {
-    await connectDatabase();
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log("✅ MongoDB Connected");
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    console.log("Clearing existing roles...");
-    await RoleModel.deleteMany({}, { session });
-
-    for (const roleName in RolePermissions) {
-      const role = roleName; 
-      const permissions = RolePermissions[role];
-
-      // Check if the role already exists
-      const existingRole = await RoleModel.findOne({ name: role }).session(session);
+    for (const role of roles) {
+      const existingRole = await Role.findOne({ name: role.name });
       if (!existingRole) {
-        const newRole = new RoleModel({
-          name: role,
-          permissions: permissions,
-        });
-        await newRole.save({ session });
-        console.log(`Role ${role} added with permissions.`);
+        await Role.create(role);
+        console.log(`🌱 Role "${role.name}" created`);
       } else {
-        console.log(`Role ${role} already exists.`);
+        console.log(`⚡ Role "${role.name}" already exists`);
       }
     }
 
-    await session.commitTransaction();
-    console.log("Transaction committed.");
-
-    session.endSession();
-    console.log("Session ended.");
-
-    console.log("Seeding completed successfully.");
+    mongoose.connection.close();
+    console.log("✅ Seeding completed and connection closed");
   } catch (error) {
-    console.error("Error during seeding:", error);
+    console.error("❌ Error seeding roles:", error);
+    mongoose.connection.close();
   }
 };
 
-seedRoles().catch((error) => console.error("Error running seed script:", error));
+seedRoles();
