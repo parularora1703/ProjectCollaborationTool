@@ -29,6 +29,9 @@ const memberSchema = new Schema(
   }
 );
 
+// ✅ Prevent duplicate memberships
+memberSchema.index({ userId: 1, workspaceId: 1 }, { unique: true });
+
 const MemberModel = mongoose.model("Member", memberSchema);
 
 export default MemberModel;

@@ -1,4 +1,4 @@
-import { seedRoles } from "./seeders/role.seeder.js";  // ✅ fixed import
+import { seedRoles } from "./seeders/role.seeder.js";  
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -10,8 +10,11 @@ import { HTTPSTATUS } from "./config/http.config.js";
 import { asyncHandler } from "./middlewares/asyncHandler.js";
 import userRoutes from "./routes/userRoute.js";
 import authRoutes from "./routes/authRoutes.js";
+import memberRoutes from "./routes/memberRoutes.js";  // ✅ added
+import { jwtAuth } from "./middlewares/jwtAuth.js";
+import isAuthenticated from "./middlewares/isAuthenticated.js";
 
-// ✅ Import your passport setup (this registers Local & Google strategies)
+// ✅ Import passport setup (this registers Local & Google strategies)
 import passport from "./config/passport.config.js";
 
 const app = express();
@@ -42,6 +45,7 @@ app.use(
   })
 );
 
+// Health check route
 app.get(
   `/`,
   asyncHandler(async (req, res) => {
@@ -51,13 +55,18 @@ app.get(
   })
 );
 
+// API routes
 app.use(`${BASE_PATH}/user`, userRoutes);
 app.use(`${BASE_PATH}/auth`, authRoutes);
+app.use(`${BASE_PATH}/members`, memberRoutes);   // ✅ added
+app.use("/api/members", jwtAuth, isAuthenticated, memberRoutes);
 
+// Error handler
 app.use(errorHandler);
 
+// Server
 app.listen(config.PORT, async () => {
-  console.log(`Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
+  console.log(`🚀 Server listening on port ${config.PORT} in ${config.NODE_ENV}`);
   await connectDatabase();
-  await seedRoles();   // ✅ works now
+  await seedRoles();   // ✅ seed roles at startup
 });

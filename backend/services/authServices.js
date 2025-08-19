@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
 import UserModel from "../models/userModel.js";
 import AccountModel from "../models/accountModel.js";
 import WorkspaceModel from "../models/workspaceModel.js";
@@ -13,6 +14,17 @@ import MemberModel from "../models/memberModel.js";
 import { ProviderEnum } from "../enums/accountProviderEnum.js";
 
 //
+// Utility: Generate JWT
+//
+const generateToken = (user) => {
+  return jwt.sign(
+    { _id: user._id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+//
 // 🔹 Login or create account (Google, Github, etc.)
 //
 export const loginOrCreateAccountService = async (data) => {
@@ -22,7 +34,6 @@ export const loginOrCreateAccountService = async (data) => {
 
   try {
     session.startTransaction();
-    console.log("Started Session...");
 
     let user = await UserModel.findOne({ email }).session(session);
 
@@ -37,12 +48,12 @@ export const loginOrCreateAccountService = async (data) => {
 
       const account = new AccountModel({
         userId: user._id,
-        provider: provider,
-        providerId: providerId,
+        provider,
+        providerId,
       });
       await account.save({ session });
 
-      // Create a new workspace for the new user
+      // Create workspace
       const workspace = new WorkspaceModel({
         name: `My Workspace`,
         description: `Workspace created for ${user.name}`,
@@ -72,9 +83,10 @@ export const loginOrCreateAccountService = async (data) => {
 
     await session.commitTransaction();
     session.endSession();
-    console.log("End Session...");
 
-    return { user };
+    const token = generateToken(user);
+
+    return { user: user.omitPassword(), token };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -99,11 +111,7 @@ export const registerUserService = async (body) => {
       throw new BadRequestException("Email already exists");
     }
 
-    const user = new UserModel({
-      email,
-      name,
-      password,
-    });
+    const user = new UserModel({ email, name, password });
     await user.save({ session });
 
     const account = new AccountModel({
@@ -113,7 +121,6 @@ export const registerUserService = async (body) => {
     });
     await account.save({ session });
 
-    // Create a new workspace for the new user
     const workspace = new WorkspaceModel({
       name: `My Workspace`,
       description: `Workspace created for ${user.name}`,
@@ -142,16 +149,13 @@ export const registerUserService = async (body) => {
 
     await session.commitTransaction();
     session.endSession();
-    console.log("End Session...");
 
-    return {
-      userId: user._id,
-      workspaceId: workspace._id,
-    };
+    const token = generateToken(user);
+
+    return { user: user.omitPassword(), token };
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
-
     throw error;
   }
 };
@@ -169,9 +173,7 @@ export const verifyUserService = async ({
     throw new NotFoundException("Invalid email or password");
   }
 
-  // ✅ Explicitly include password since schema has select: false
   const user = await UserModel.findById(account.userId).select("+password");
-
   if (!user) {
     throw new NotFoundException("User not found for the given account");
   }
@@ -181,9 +183,10 @@ export const verifyUserService = async ({
     throw new UnauthorizedException("Invalid email or password");
   }
 
-  // ✅ update last login timestamp
   user.lastLogin = new Date();
   await user.save();
 
-  return user.omitPassword();
+  const token = generateToken(user);
+
+  return { user: user.omitPassword(), token };
 };
